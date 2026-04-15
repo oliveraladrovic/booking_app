@@ -1,6 +1,11 @@
+from __future__ import annotations
 from sqlalchemy import String, Integer, Boolean, DateTime
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .booking import Booking
 
 from .base import Base
 
@@ -18,3 +23,4 @@ class Service(Base):
         default=lambda: datetime.now(timezone.utc),
         nullable=False,
     )
+    bookings: Mapped[list[Booking]] = relationship("Booking", back_populates="service")

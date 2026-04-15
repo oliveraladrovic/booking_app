@@ -1,6 +1,12 @@
+from __future__ import annotations
 from sqlalchemy import ForeignKey, Integer, DateTime, Enum, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .user import User
+    from .service import Service
 
 from .base import Base
 from ..shared.enums import BookingStatus
@@ -33,3 +39,5 @@ class Booking(Base):
         onupdate=lambda: datetime.now(timezone.utc),
         nullable=False,
     )
+    user: Mapped[User] = relationship("User", back_populates="bookings")
+    service: Mapped[Service] = relationship("Service", back_populates="bookings")
