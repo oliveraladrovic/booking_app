@@ -1,7 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
+from fastapi.responses import JSONResponse
 
 from .config import settings
 from .api import user_router
+from .shared.exceptions import DomainException
 
 app = FastAPI(
     title=settings.app_name,
@@ -15,3 +17,10 @@ app.include_router(user_router.router)
 @app.get("/health")
 def health_check():
     return {"status": "ok", "app": settings.app_name}
+
+
+@app.exception_handler(DomainException)
+def domain_exception_handler(request: Request, exc: DomainException):
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST, content={"detail": exc.message}
+    )
