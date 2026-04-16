@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     app_env: str
     debug: bool = False
     database_url: str
+    test_database_url: str
     secret_key: str
 
     model_config = SettingsConfigDict(
