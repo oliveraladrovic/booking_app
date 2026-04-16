@@ -41,12 +41,6 @@ htmlcov/
 *.sqlite3
 
 # =========================
-# Alembic
-# =========================
-alembic/versions/*
-!alembic/versions/.gitkeep
-
-# =========================
 # Environment variables
 # =========================
 .env
