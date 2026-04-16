@@ -21,6 +21,4 @@ def health_check():
 
 @app.exception_handler(DomainException)
 def domain_exception_handler(request: Request, exc: DomainException):
-    return JSONResponse(
-        status_code=status.HTTP_400_BAD_REQUEST, content={"detail": exc.message}
-    )
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.message})
