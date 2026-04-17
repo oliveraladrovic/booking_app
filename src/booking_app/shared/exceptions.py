@@ -9,3 +9,8 @@ class DomainException(Exception):
 class EmailAlreadyExistsError(DomainException):
     message: str = "Email already exists"
     status_code: int = status.HTTP_409_CONFLICT
+
+
+class UserNotFoundError(DomainException):
+    message: str = "User not found"
+    status_code: int = status.HTTP_404_NOT_FOUND
