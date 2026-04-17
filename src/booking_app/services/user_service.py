@@ -2,7 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
-from ..schemas.user import UserCreate
+from ..schemas.user import UserCreate, UserUpdate
 from ..models.user import User
 from ..shared.exceptions import EmailAlreadyExistsError, UserNotFoundError
 
@@ -29,6 +29,33 @@ def list_users(session: Session) -> list[User]:
 
 def get_user(session: Session, user_id: int) -> User:
     return _get_user_or_404(session, user_id)
+
+
+def update_user(session: Session, user_id: int, user_data: UserUpdate) -> User:
+    user = _get_user_or_404(session, user_id)
+    update_data = user_data.model_dump(exclude_unset=True)
+    if not update_data:
+        return user
+
+    updated = False
+    for field, value in update_data.items():
+        if field == "email" and value == user.email:
+            continue
+
+        setattr(user, field, value)
+        updated = True
+
+    if not updated:
+        return user
+
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        raise EmailAlreadyExistsError()
+
+    session.refresh(user)
+    return user
 
 
 def delete_user(session: Session, user_id: int) -> None:

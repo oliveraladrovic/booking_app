@@ -7,6 +7,11 @@ class UserCreate(BaseModel):
     email: EmailStr
 
 
+class UserUpdate(BaseModel):
+    full_name: str | None = None
+    email: EmailStr | None = None
+
+
 class UserRead(BaseModel):
     id: int
     full_name: str
