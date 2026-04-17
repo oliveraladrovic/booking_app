@@ -14,3 +14,8 @@ class EmailAlreadyExistsError(DomainException):
 class UserNotFoundError(DomainException):
     message: str = "User not found"
     status_code: int = status.HTTP_404_NOT_FOUND
+
+
+class ServiceNotFoundError(DomainException):
+    message: str = "Service not found"
+    status_code: int = status.HTTP_404_NOT_FOUND

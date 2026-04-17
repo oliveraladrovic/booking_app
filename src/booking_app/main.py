@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from .config import settings
-from .api import user_router
+from .api import user_router, service_router
 from .shared.exceptions import DomainException
 
 app = FastAPI(
@@ -12,6 +12,7 @@ app = FastAPI(
 )
 
 app.include_router(user_router.router)
+app.include_router(service_router.router)
 
 
 @app.get("/health")
