@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+from datetime import datetime, timezone, timedelta
 
 PREGLED = {"name": "Pregled", "duration_minutes": 15}
 PJESKARENJE = {
@@ -28,6 +29,53 @@ def test_get_services_success(client: TestClient):
     response = client.get("/services/")
     assert response.status_code == 200
     assert len(response.json()) == 2
+
+
+def test_get_services_by_user_and_date(client: TestClient):
+    user1 = client.post(
+        "/users/", json={"full_name": "First User", "email": "first.user@example.com"}
+    )
+    user1_id = user1.json()["id"]
+    user2 = client.post(
+        "/users/", json={"full_name": "Second User", "email": "second.user@example.com"}
+    )
+    user2_id = user2.json()["id"]
+    service1 = client.post("/services/", json=PREGLED)
+    service1_id = service1.json()["id"]
+    service2 = client.post("/services/", json=PJESKARENJE)
+    service2_id = service2.json()["id"]
+
+    start1 = datetime.now(timezone.utc) + timedelta(minutes=1)
+    booking1_data = {
+        "user_id": user1_id,
+        "service_id": service1_id,
+        "start_time": start1.isoformat(),
+    }
+    start2 = start1 + timedelta(days=2)
+    booking2_data = {
+        "user_id": user2_id,
+        "service_id": service2_id,
+        "start_time": start2.isoformat(),
+    }
+    start3 = start1 + timedelta(days=4)
+    booking3_data = {
+        "user_id": user2_id,
+        "service_id": service1_id,
+        "start_time": start3.isoformat(),
+    }
+    client.post("/bookings/", json=booking1_data)
+    client.post("/bookings/", json=booking2_data)
+    client.post("/bookings/", json=booking3_data)
+
+    start_date = start1 + timedelta(days=1)
+    end_date = start1 + timedelta(days=3)
+    response = client.get(
+        f"/services/?user_id={user2_id}&start_date={start_date.replace(tzinfo=None).isoformat()}&end_date={end_date.replace(tzinfo=None).isoformat()}"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["id"] == service2_id
 
 
 def test_get_service_success(client: TestClient):

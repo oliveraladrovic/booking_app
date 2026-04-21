@@ -1,9 +1,11 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from datetime import datetime
 
 from ..schemas.service import ServiceCreate, ServiceUpdate
-from ..models.service import Service
+from ..models import Service, Booking
 from ..shared.exceptions import ServiceNotFoundError
+from ..shared.enums import BookingStatus
 
 
 def create_service(session: Session, service: ServiceCreate) -> Service:
@@ -18,8 +20,26 @@ def create_service(session: Session, service: ServiceCreate) -> Service:
     return new_service
 
 
-def list_services(session: Session) -> list[Service]:
-    return session.scalars(select(Service)).all()
+def list_services(
+    session: Session,
+    user_id: int | None = None,
+    start_date: datetime | None = None,
+    end_date: datetime | None = None,
+) -> list[Service]:
+    services = session.query(Service)
+    if user_id is not None:
+        services = services.join(Service.bookings).filter(Booking.user_id == user_id)
+    if start_date is not None:
+        services = services.filter(Booking.start_time > start_date)
+    if end_date is not None:
+        services = services.filter(Booking.start_time < end_date)
+    if any(value is not None for value in (user_id, start_date, end_date)):
+        services = services.filter(
+            Booking.status != BookingStatus.cancelled,
+            Booking.status != BookingStatus.completed,
+        )
+    services = services.all()
+    return services
 
 
 def get_service(session: Session, service_id: int) -> Service:
