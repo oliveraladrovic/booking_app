@@ -36,6 +36,11 @@ class BookingNotFoundError(DomainException):
     status_code: int = status.HTTP_404_NOT_FOUND
 
 
-class ConfirmingInvalidBookingError(DomainException):
+class UnableToConfirmError(DomainException):
     message: str = "Only pending booking can be confirmed"
+    status_code: int = status.HTTP_409_CONFLICT
+
+
+class UnableToCancelError(DomainException):
+    message: str = "Only pending and confirmed bookings can be canceled"
     status_code: int = status.HTTP_409_CONFLICT

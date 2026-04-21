@@ -16,3 +16,8 @@ def post_booking(booking: BookingCreate, session: Session = Depends(get_session)
 @router.post("/{booking_id}/confirm", response_model=BookingRead)
 def confirm_booking(booking_id: int, session: Session = Depends(get_session)):
     return booking_service.confirm_booking(session, booking_id)
+
+
+@router.post("/{booking_id}/cancel", response_model=BookingRead)
+def cancel_booking(booking_id: int, session: Session = Depends(get_session)):
+    return booking_service.cancel_booking(session, booking_id)

@@ -10,7 +10,8 @@ from ..shared.exceptions import (
     TimeSlotOccupiedError,
     InvalidStartTimeError,
     BookingNotFoundError,
-    ConfirmingInvalidBookingError,
+    UnableToConfirmError,
+    UnableToCancelError,
 )
 from ..shared.enums import BookingStatus
 
@@ -68,12 +69,25 @@ def create_booking(session: Session, booking: BookingCreate) -> Booking:
 def confirm_booking(session: Session, booking_id: int) -> Booking:
     booking = _get_booking_or_404(session, booking_id)
     if booking.status != BookingStatus.pending:
-        raise ConfirmingInvalidBookingError()
+        raise UnableToConfirmError()
 
     if booking.start_time < datetime.now(timezone.utc):
         raise InvalidStartTimeError()
 
     booking.status = BookingStatus.confirmed
+    session.commit()
+    return booking
+
+
+def cancel_booking(session: Session, booking_id: int) -> Booking:
+    booking = _get_booking_or_404(session, booking_id)
+    if (
+        booking.status != BookingStatus.pending
+        and booking.status != BookingStatus.confirmed
+    ):
+        raise UnableToCancelError()
+
+    booking.status = BookingStatus.cancelled
     session.commit()
     return booking
 
