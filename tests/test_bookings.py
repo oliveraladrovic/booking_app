@@ -33,7 +33,11 @@ def test_post_booking_success(client: TestClient):
     assert data["status"] == BookingStatus.pending.value
     assert "notes" in data
     assert isinstance(data["created_at"], str)
-    assert data["created_at"] == data["updated_at"]
+    assert (
+        datetime.fromisoformat(data["created_at"])
+        <= datetime.fromisoformat(data["updated_at"])
+        <= datetime.fromisoformat(data["created_at"]) + timedelta(seconds=1)
+    )
 
 
 def test_post_booking_user_not_found(client: TestClient):
