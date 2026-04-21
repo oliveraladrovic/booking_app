@@ -338,3 +338,54 @@ def test_complete_booking_not_found(client: TestClient):
     response = client.post("/bookings/999/complete")
     assert response.status_code == 404
     assert response.json()["detail"] == "Booking not found"
+
+
+def test_get_bookings_success(client: TestClient):
+    user = client.post("/users/", json=USER)
+    user_id = user.json()["id"]
+    service = client.post("/services/", json=SERVICE)
+    service_id = service.json()["id"]
+
+    start = datetime.now(timezone.utc) + timedelta(minutes=1)
+    booking_data = {
+        "user_id": user_id,
+        "service_id": service_id,
+        "start_time": start.isoformat(),
+    }
+    client.post("/bookings/", json=booking_data)
+
+    response = client.get("/bookings/")
+    assert response.status_code == 200
+
+    data = response.json()
+    assert isinstance(data, list)
+    assert len(data) == 1
+
+
+def test_get_booking_success(client: TestClient):
+    user = client.post("/users/", json=USER)
+    user_id = user.json()["id"]
+    service = client.post("/services/", json=SERVICE)
+    service_id = service.json()["id"]
+
+    start = datetime.now(timezone.utc) + timedelta(minutes=1)
+    booking_data = {
+        "user_id": user_id,
+        "service_id": service_id,
+        "start_time": start.isoformat(),
+    }
+    booking = client.post("/bookings/", json=booking_data)
+    booking_id = booking.json()["id"]
+
+    response = client.get(f"/bookings/{booking_id}")
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["id"] == booking_id
+    assert data["status"] == BookingStatus.pending.value
+
+
+def test_get_booking_not_found(client: TestClient):
+    response = client.get("/bookings/999")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Booking not found"

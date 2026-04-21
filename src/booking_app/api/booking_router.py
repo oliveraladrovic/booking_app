@@ -26,3 +26,13 @@ def cancel_booking(booking_id: int, session: Session = Depends(get_session)):
 @router.post("/{booking_id}/complete", response_model=BookingRead)
 def complete_booking(booking_id: int, session: Session = Depends(get_session)):
     return booking_service.complete_booking(session, booking_id)
+
+
+@router.get("/", response_model=list[BookingRead])
+def get_bookings(session: Session = Depends(get_session)):
+    return booking_service.list_bookings(session)
+
+
+@router.get("/{booking_id}", response_model=BookingRead)
+def get_booking(booking_id: int, session: Session = Depends(get_session)):
+    return booking_service.get_booking(session, booking_id)

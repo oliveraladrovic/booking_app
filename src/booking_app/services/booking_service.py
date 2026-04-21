@@ -103,6 +103,14 @@ def complete_booking(session: Session, booking_id: int) -> Booking:
     return booking
 
 
+def list_bookings(session: Session) -> list[Booking]:
+    return session.scalars(select(Booking)).all()
+
+
+def get_booking(session: Session, booking_id: int) -> Booking:
+    return _get_booking_or_404(session, booking_id)
+
+
 def _get_booking_or_404(session: Session, booking_id: int) -> Booking:
     booking = session.scalar(select(Booking).where(Booking.id == booking_id))
     if booking is None:
