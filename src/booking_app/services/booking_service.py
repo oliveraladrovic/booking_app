@@ -1,6 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, date
 
 from ..schemas.booking import BookingCreate, BookingUpdate
 from ..models import User, Service, Booking
@@ -89,8 +89,21 @@ def complete_booking(session: Session, booking_id: int) -> Booking:
     return booking
 
 
-def list_bookings(session: Session) -> list[Booking]:
-    return session.scalars(select(Booking)).all()
+def list_bookings(
+    session: Session, start_date: date | None = None, end_date: date | None = None
+) -> list[Booking]:
+    bookings = session.query(Booking)
+    if start_date is not None:
+        bookings = bookings.filter(Booking.start_time >= start_date)
+    if end_date is not None:
+        bookings = bookings.filter(Booking.start_time <= end_date)
+    if any(value is not None for value in (start_date, end_date)):
+        bookings = bookings.filter(
+            Booking.status != BookingStatus.cancelled,
+            Booking.status != BookingStatus.completed,
+        )
+    bookings = bookings.all()
+    return bookings
 
 
 def get_booking(session: Session, booking_id: int) -> Booking:

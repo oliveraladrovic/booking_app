@@ -1,5 +1,6 @@
 from fastapi import APIRouter, status, Depends
 from sqlalchemy.orm import Session
+from datetime import date
 
 from ..schemas.booking import BookingCreate, BookingRead, BookingUpdate
 from ..db.session import get_session
@@ -29,8 +30,12 @@ def complete_booking(booking_id: int, session: Session = Depends(get_session)):
 
 
 @router.get("/", response_model=list[BookingRead])
-def get_bookings(session: Session = Depends(get_session)):
-    return booking_service.list_bookings(session)
+def get_bookings(
+    start_date: date | None = None,
+    end_date: date | None = None,
+    session: Session = Depends(get_session),
+):
+    return booking_service.list_bookings(session, start_date, end_date)
 
 
 @router.get("/{booking_id}", response_model=BookingRead)

@@ -521,3 +521,60 @@ def test_patch_booking_overlaping(client: TestClient):
     )
     assert response.status_code == 409
     assert response.json()["detail"] == "Time slot already occupied"
+
+
+def test_get_bookings_by_date(client: TestClient):
+    user1 = client.post(
+        "/users/", json={"full_name": "First User", "email": "first.user@example.com"}
+    )
+    user1_id = user1.json()["id"]
+    user2 = client.post(
+        "/users/", json={"full_name": "Second User", "email": "second.user@example.com"}
+    )
+    user2_id = user2.json()["id"]
+    service1 = client.post(
+        "/services/", json={"name": "Pregled", "duration_minutes": 15}
+    )
+    service1_id = service1.json()["id"]
+    service2 = client.post(
+        "/services/",
+        json={
+            "name": "Pjeskarenje",
+            "description": "Čišćenje i poliranje zubi",
+            "duration_minutes": 30,
+        },
+    )
+    service2_id = service2.json()["id"]
+
+    start1 = datetime.now(timezone.utc) + timedelta(minutes=1)
+    booking1_data = {
+        "user_id": user1_id,
+        "service_id": service1_id,
+        "start_time": start1.isoformat(),
+    }
+    start2 = start1 + timedelta(days=2)
+    booking2_data = {
+        "user_id": user2_id,
+        "service_id": service2_id,
+        "start_time": start2.isoformat(),
+    }
+    start3 = start1 + timedelta(days=4)
+    booking3_data = {
+        "user_id": user2_id,
+        "service_id": service2_id,
+        "start_time": start3.isoformat(),
+    }
+    client.post("/bookings/", json=booking1_data)
+    booking2 = client.post("/bookings/", json=booking2_data)
+    booking2_id = booking2.json()["id"]
+    client.post("/bookings/", json=booking3_data)
+
+    start_date = (start1 + timedelta(days=1)).date()
+    end_date = (start1 + timedelta(days=3)).date()
+    response = client.get(
+        f"/bookings/?start_date={start_date.isoformat()}&end_date={end_date.isoformat()}"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["id"] == booking2_id

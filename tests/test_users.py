@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-from datetime import datetime, timezone, timedelta, date
+from datetime import datetime, timezone, timedelta
 
 FIRST_USER = {"full_name": "First User", "email": "first.user@example.com"}
 SECOND_USER = {"full_name": "Second User", "email": "second.user@example.com"}
