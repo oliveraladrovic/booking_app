@@ -1,7 +1,7 @@
 from fastapi import APIRouter, status, Depends
 from sqlalchemy.orm import Session
 
-from ..schemas.booking import BookingCreate, BookingRead
+from ..schemas.booking import BookingCreate, BookingRead, BookingUpdate
 from ..db.session import get_session
 from ..services import booking_service
 
@@ -36,3 +36,10 @@ def get_bookings(session: Session = Depends(get_session)):
 @router.get("/{booking_id}", response_model=BookingRead)
 def get_booking(booking_id: int, session: Session = Depends(get_session)):
     return booking_service.get_booking(session, booking_id)
+
+
+@router.patch("/{booking_id}", response_model=BookingRead)
+def patch_booking(
+    booking_id: int, update_data: BookingUpdate, session: Session = Depends(get_session)
+):
+    return booking_service.update_booking(session, booking_id, update_data)

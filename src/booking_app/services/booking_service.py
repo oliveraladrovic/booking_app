@@ -2,7 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone, timedelta
 
-from ..schemas.booking import BookingCreate
+from ..schemas.booking import BookingCreate, BookingUpdate
 from ..models import User, Service, Booking
 from ..shared.exceptions import (
     UserNotFoundError,
@@ -13,6 +13,7 @@ from ..shared.exceptions import (
     UnableToConfirmError,
     UnableToCancelError,
     UnableToCompleteError,
+    BookingUpdateError,
 )
 from ..shared.enums import BookingStatus
 
@@ -33,31 +34,16 @@ def create_booking(session: Session, booking: BookingCreate) -> Booking:
     if service is None:
         raise ServiceNotFoundError()
 
-    # Check for overlap
-    booking_start = (
-        booking.start_time.replace(tzinfo=timezone.utc)
-        if booking.start_time.tzinfo is None
-        else booking.start_time
+    booking_start, booking_end = _calculate_time(
+        booking.start_time, service.duration_minutes
     )
-    if booking_start < datetime.now(timezone.utc):
-        raise InvalidStartTimeError()
-
-    new_end_time = booking_start + timedelta(minutes=service.duration_minutes)
-    overlap = session.scalar(
-        select(Booking).where(
-            Booking.start_time < new_end_time,
-            Booking.end_time > booking_start,
-            Booking.status != BookingStatus.cancelled,
-        )
-    )
-    if overlap:
-        raise TimeSlotOccupiedError()
+    _check_for_overlap(booking_start, booking_end, session)
 
     new_booking = Booking(
         user_id=booking.user_id,
         service_id=booking.service_id,
         start_time=booking_start,
-        end_time=new_end_time,
+        end_time=booking_end,
         status=BookingStatus.pending,
         notes=booking.notes,
     )
@@ -111,9 +97,67 @@ def get_booking(session: Session, booking_id: int) -> Booking:
     return _get_booking_or_404(session, booking_id)
 
 
+def update_booking(
+    session: Session, booking_id: int, booking_data: BookingUpdate
+) -> Booking:
+    booking = _get_booking_or_404(session, booking_id)
+    if booking.status != BookingStatus.pending:
+        raise BookingUpdateError()
+
+    update_data = booking_data.model_dump(exclude_unset=True)
+    if not update_data:
+        return booking
+
+    for field, value in update_data.items():
+        if field == "start_time":
+            booking_start, booking_end = _calculate_time(
+                value, booking.service.duration_minutes
+            )
+            _check_for_overlap(booking_start, booking_end, session, booking_id)
+
+        setattr(booking, field, value)
+
+    session.commit()
+    return booking
+
+
 def _get_booking_or_404(session: Session, booking_id: int) -> Booking:
     booking = session.scalar(select(Booking).where(Booking.id == booking_id))
     if booking is None:
         raise BookingNotFoundError()
 
     return booking
+
+
+def _calculate_time(
+    start_time: datetime, service_duration: int
+) -> tuple[datetime, datetime]:
+    booking_start = (
+        start_time.replace(tzinfo=timezone.utc)
+        if start_time.tzinfo is None
+        else start_time
+    )
+    booking_end = booking_start + timedelta(minutes=service_duration)
+    return booking_start, booking_end
+
+
+def _check_for_overlap(
+    booking_start: datetime,
+    booking_end: datetime,
+    session: Session,
+    booking_id: int | None = None,
+) -> None:
+
+    if booking_start < datetime.now(timezone.utc):
+        raise InvalidStartTimeError()
+
+    overlap = session.scalar(
+        select(Booking).where(
+            Booking.start_time < booking_end,
+            Booking.end_time > booking_start,
+            Booking.status != BookingStatus.cancelled,
+            Booking.id != booking_id,
+        )
+    )
+    if overlap:
+        raise TimeSlotOccupiedError()

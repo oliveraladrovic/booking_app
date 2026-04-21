@@ -389,3 +389,135 @@ def test_get_booking_not_found(client: TestClient):
     response = client.get("/bookings/999")
     assert response.status_code == 404
     assert response.json()["detail"] == "Booking not found"
+
+
+def test_patch_booking_notes_success(client: TestClient):
+    user = client.post("/users/", json=USER)
+    user_id = user.json()["id"]
+    service = client.post("/services/", json=SERVICE)
+    service_id = service.json()["id"]
+
+    start = datetime.now(timezone.utc) + timedelta(minutes=1)
+    booking = {
+        "user_id": user_id,
+        "service_id": service_id,
+        "start_time": start.isoformat(),
+    }
+    booking = client.post("/bookings/", json=booking)
+    booking_id = booking.json()["id"]
+    assert booking.json()["notes"] is None
+
+    response = client.patch(f"/bookings/{booking_id}", json={"notes": "Updated!"})
+    assert response.status_code == 200
+    assert response.json()["notes"] == "Updated!"
+
+
+def test_patch_booking_start_time_success(client: TestClient):
+    user = client.post("/users/", json=USER)
+    user_id = user.json()["id"]
+    service = client.post("/services/", json=SERVICE)
+    service_id = service.json()["id"]
+
+    start = datetime.now(timezone.utc) + timedelta(minutes=1)
+    booking = {
+        "user_id": user_id,
+        "service_id": service_id,
+        "start_time": start.isoformat(),
+    }
+    booking = client.post("/bookings/", json=booking)
+    booking_id = booking.json()["id"]
+
+    new_start = start + timedelta(minutes=1)
+    response = client.patch(
+        f"/bookings/{booking_id}", json={"start_time": new_start.isoformat()}
+    )
+    assert response.status_code == 200
+
+    data = response.json()
+    assert datetime.fromisoformat(data["start_time"]) > start + timedelta(seconds=30)
+
+
+def test_patch_booking_no_update(client: TestClient):
+    user = client.post("/users/", json=USER)
+    user_id = user.json()["id"]
+    service = client.post("/services/", json=SERVICE)
+    service_id = service.json()["id"]
+
+    start = datetime.now(timezone.utc) + timedelta(minutes=1)
+    booking = {
+        "user_id": user_id,
+        "service_id": service_id,
+        "start_time": start.isoformat(),
+    }
+    booking = client.post("/bookings/", json=booking)
+    booking_id = booking.json()["id"]
+    assert booking.json()["notes"] is None
+
+    response = client.patch(f"/bookings/{booking_id}", json={})
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["notes"] is None
+    assert datetime.fromisoformat(data["start_time"]) == start
+
+
+def test_patch_booking_not_found(client: TestClient):
+    response = client.patch("/bookings/999", json={})
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Booking not found"
+
+
+def test_patch_booking_time_in_past(client: TestClient):
+    user = client.post("/users/", json=USER)
+    user_id = user.json()["id"]
+    service = client.post("/services/", json=SERVICE)
+    service_id = service.json()["id"]
+
+    start = datetime.now(timezone.utc) + timedelta(minutes=1)
+    booking = {
+        "user_id": user_id,
+        "service_id": service_id,
+        "start_time": start.isoformat(),
+    }
+    booking = client.post("/bookings/", json=booking)
+    booking_id = booking.json()["id"]
+
+    new_start = datetime.now(timezone.utc) - timedelta(minutes=10)
+    response = client.patch(
+        f"/bookings/{booking_id}", json={"start_time": new_start.isoformat()}
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Start time can not be in past"
+
+
+def test_patch_booking_overlaping(client: TestClient):
+    user = client.post("/users/", json=USER)
+    user_id = user.json()["id"]
+    service = client.post("/services/", json=SERVICE)
+    service_id = service.json()["id"]
+
+    start1 = datetime.now(timezone.utc) + timedelta(minutes=1)
+    booking1 = {
+        "user_id": user_id,
+        "service_id": service_id,
+        "start_time": start1.isoformat(),
+    }
+    booking1 = client.post("/bookings/", json=booking1)
+    assert booking1.status_code == 201
+
+    start2 = start1 + timedelta(minutes=35)
+    booking2 = {
+        "user_id": user_id,
+        "service_id": service_id,
+        "start_time": start2.isoformat(),
+    }
+    booking2 = client.post("/bookings/", json=booking2)
+    assert booking2.status_code == 201
+    booking2_id = booking2.json()["id"]
+
+    new_start = start1 + timedelta(minutes=20)
+    response = client.patch(
+        f"/bookings/{booking2_id}", json={"start_time": new_start.isoformat()}
+    )
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Time slot already occupied"

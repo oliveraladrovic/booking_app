@@ -49,3 +49,8 @@ class UnableToCancelError(DomainException):
 class UnableToCompleteError(DomainException):
     message: str = "Only confirmed bookings can be completed"
     status_code: int = status.HTTP_409_CONFLICT
+
+
+class BookingUpdateError(DomainException):
+    message: str = "Only pending booking can be updated"
+    status_code: int = status.HTTP_409_CONFLICT

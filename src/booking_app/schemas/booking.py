@@ -11,6 +11,11 @@ class BookingCreate(BaseModel):
     notes: str | None = None
 
 
+class BookingUpdate(BaseModel):
+    start_time: datetime | None = None
+    notes: str | None = None
+
+
 class BookingRead(BaseModel):
     id: int
     user_id: int
