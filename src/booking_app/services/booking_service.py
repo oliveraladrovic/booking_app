@@ -12,6 +12,7 @@ from ..shared.exceptions import (
     BookingNotFoundError,
     UnableToConfirmError,
     UnableToCancelError,
+    UnableToCompleteError,
 )
 from ..shared.enums import BookingStatus
 
@@ -88,6 +89,16 @@ def cancel_booking(session: Session, booking_id: int) -> Booking:
         raise UnableToCancelError()
 
     booking.status = BookingStatus.cancelled
+    session.commit()
+    return booking
+
+
+def complete_booking(session: Session, booking_id: int) -> Booking:
+    booking = _get_booking_or_404(session, booking_id)
+    if booking.status != BookingStatus.confirmed:
+        raise UnableToCompleteError()
+
+    booking.status = BookingStatus.completed
     session.commit()
     return booking
 

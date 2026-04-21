@@ -266,3 +266,75 @@ def test_cancel_booking_not_found(client: TestClient):
     response = client.post("/bookings/999/cancel")
     assert response.status_code == 404
     assert response.json()["detail"] == "Booking not found"
+
+
+def test_complete_booking_pending_unable(client: TestClient):
+    user = client.post("/users/", json=USER)
+    user_id = user.json()["id"]
+    service = client.post("/services/", json=SERVICE)
+    service_id = service.json()["id"]
+
+    start = datetime.now(timezone.utc) + timedelta(minutes=1)
+    booking_data = {
+        "user_id": user_id,
+        "service_id": service_id,
+        "start_time": start.isoformat(),
+    }
+    booking = client.post("/bookings/", json=booking_data)
+    booking_id = booking.json()["id"]
+
+    response = client.post(f"/bookings/{booking_id}/complete")
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Only confirmed bookings can be completed"
+
+
+def test_complete_booking_canceled_unable(client: TestClient):
+    user = client.post("/users/", json=USER)
+    user_id = user.json()["id"]
+    service = client.post("/services/", json=SERVICE)
+    service_id = service.json()["id"]
+
+    start = datetime.now(timezone.utc) + timedelta(minutes=1)
+    booking_data = {
+        "user_id": user_id,
+        "service_id": service_id,
+        "start_time": start.isoformat(),
+    }
+    booking = client.post("/bookings/", json=booking_data)
+    booking_id = booking.json()["id"]
+
+    canceled = client.post(f"/bookings/{booking_id}/cancel")
+    assert canceled.status_code == 200
+
+    response = client.post(f"/bookings/{booking_id}/complete")
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Only confirmed bookings can be completed"
+
+
+def test_complete_booking_canfirmed_success(client: TestClient):
+    user = client.post("/users/", json=USER)
+    user_id = user.json()["id"]
+    service = client.post("/services/", json=SERVICE)
+    service_id = service.json()["id"]
+
+    start = datetime.now(timezone.utc) + timedelta(minutes=1)
+    booking_data = {
+        "user_id": user_id,
+        "service_id": service_id,
+        "start_time": start.isoformat(),
+    }
+    booking = client.post("/bookings/", json=booking_data)
+    booking_id = booking.json()["id"]
+
+    confirmed = client.post(f"/bookings/{booking_id}/confirm")
+    assert confirmed.status_code == 200
+
+    response = client.post(f"/bookings/{booking_id}/complete")
+    assert response.status_code == 200
+    assert response.json()["status"] == BookingStatus.completed.value
+
+
+def test_complete_booking_not_found(client: TestClient):
+    response = client.post("/bookings/999/complete")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Booking not found"
