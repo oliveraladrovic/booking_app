@@ -1,6 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import date
 
 from ..schemas.service import ServiceCreate, ServiceUpdate
 from ..models import Service, Booking
@@ -23,16 +23,16 @@ def create_service(session: Session, service: ServiceCreate) -> Service:
 def list_services(
     session: Session,
     user_id: int | None = None,
-    start_date: datetime | None = None,
-    end_date: datetime | None = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
 ) -> list[Service]:
     services = session.query(Service)
     if user_id is not None:
         services = services.join(Service.bookings).filter(Booking.user_id == user_id)
     if start_date is not None:
-        services = services.filter(Booking.start_time > start_date)
+        services = services.filter(Booking.start_time >= start_date)
     if end_date is not None:
-        services = services.filter(Booking.start_time < end_date)
+        services = services.filter(Booking.start_time <= end_date)
     if any(value is not None for value in (user_id, start_date, end_date)):
         services = services.filter(
             Booking.status != BookingStatus.cancelled,

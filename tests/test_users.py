@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+from datetime import datetime, timezone, timedelta, date
 
 FIRST_USER = {"full_name": "First User", "email": "first.user@example.com"}
 SECOND_USER = {"full_name": "Second User", "email": "second.user@example.com"}
@@ -174,3 +175,55 @@ def test_delete_user_not_found(client: TestClient):
     response = client.delete("/users/999")
     assert response.status_code == 404
     assert response.json()["detail"] == "User not found"
+
+
+def test_get_users_by_service_and_date(client: TestClient):
+    user1 = client.post("/users/", json=FIRST_USER)
+    user1_id = user1.json()["id"]
+    user2 = client.post("/users/", json=SECOND_USER)
+    user2_id = user2.json()["id"]
+    service1 = client.post(
+        "/services/", json={"name": "Pregled", "duration_minutes": 15}
+    )
+    service1_id = service1.json()["id"]
+    service2 = client.post(
+        "/services/",
+        json={
+            "name": "Pjeskarenje",
+            "description": "Čišćenje i poliranje zubi",
+            "duration_minutes": 30,
+        },
+    )
+    service2_id = service2.json()["id"]
+
+    start1 = datetime.now(timezone.utc) + timedelta(minutes=1)
+    booking1_data = {
+        "user_id": user1_id,
+        "service_id": service1_id,
+        "start_time": start1.isoformat(),
+    }
+    start2 = start1 + timedelta(days=2)
+    booking2_data = {
+        "user_id": user2_id,
+        "service_id": service2_id,
+        "start_time": start2.isoformat(),
+    }
+    start3 = start1 + timedelta(days=4)
+    booking3_data = {
+        "user_id": user2_id,
+        "service_id": service2_id,
+        "start_time": start3.isoformat(),
+    }
+    client.post("/bookings/", json=booking1_data)
+    client.post("/bookings/", json=booking2_data)
+    client.post("/bookings/", json=booking3_data)
+
+    start_date = (start1 + timedelta(days=1)).date()
+    end_date = (start1 + timedelta(days=3)).date()
+    response = client.get(
+        f"/users/?service_id={service2_id}&start_date={start_date.isoformat()}&end_date={end_date.isoformat()}"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["id"] == user2_id

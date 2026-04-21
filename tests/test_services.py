@@ -67,10 +67,10 @@ def test_get_services_by_user_and_date(client: TestClient):
     client.post("/bookings/", json=booking2_data)
     client.post("/bookings/", json=booking3_data)
 
-    start_date = start1 + timedelta(days=1)
-    end_date = start1 + timedelta(days=3)
+    start_date = (start1 + timedelta(days=1)).date()
+    end_date = (start1 + timedelta(days=3)).date()
     response = client.get(
-        f"/services/?user_id={user2_id}&start_date={start_date.replace(tzinfo=None).isoformat()}&end_date={end_date.replace(tzinfo=None).isoformat()}"
+        f"/services/?user_id={user2_id}&start_date={start_date.isoformat()}&end_date={end_date.isoformat()}"
     )
     assert response.status_code == 200
     data = response.json()

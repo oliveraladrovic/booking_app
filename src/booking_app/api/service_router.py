@@ -1,6 +1,6 @@
 from fastapi import APIRouter, status, Depends
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import date
 
 from ..schemas.service import ServiceRead, ServiceCreate, ServiceUpdate
 from ..db.session import get_session
@@ -17,8 +17,8 @@ def post_service(service: ServiceCreate, session: Session = Depends(get_session)
 @router.get("/", response_model=list[ServiceRead])
 def get_services(
     user_id: int | None = None,
-    start_date: datetime | None = None,
-    end_date: datetime | None = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
     session: Session = Depends(get_session),
 ):
     return service_service.list_services(session, user_id, start_date, end_date)

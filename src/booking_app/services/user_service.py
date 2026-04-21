@@ -1,10 +1,12 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+from datetime import date
 
 from ..schemas.user import UserCreate, UserUpdate
-from ..models.user import User
+from ..models import User, Booking
 from ..shared.exceptions import EmailAlreadyExistsError, UserNotFoundError
+from ..shared.enums import BookingStatus
 
 
 def create_user(session: Session, data: UserCreate) -> User:
@@ -23,8 +25,26 @@ def create_user(session: Session, data: UserCreate) -> User:
     return new_user
 
 
-def list_users(session: Session) -> list[User]:
-    return session.scalars(select(User)).all()
+def list_users(
+    session: Session,
+    service_id: int | None = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
+) -> list[User]:
+    users = session.query(User)
+    if service_id is not None:
+        users = users.join(User.bookings).filter(Booking.service_id == service_id)
+    if start_date is not None:
+        users = users.filter(Booking.start_time >= start_date)
+    if end_date is not None:
+        users = users.filter(Booking.start_time <= end_date)
+    if any(value is not None for value in (service_id, start_date, end_date)):
+        users = users.filter(
+            Booking.status != BookingStatus.cancelled,
+            Booking.status != BookingStatus.completed,
+        )
+    users = users.all()
+    return users
 
 
 def get_user(session: Session, user_id: int) -> User:
