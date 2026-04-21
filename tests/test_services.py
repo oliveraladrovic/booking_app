@@ -89,7 +89,7 @@ def test_patch_service_updates_create_fields(client: TestClient):
 
 
 def test_patch_service_not_found(client: TestClient):
-    client.post("/services", json=PREGLED)
+    client.post("/services/", json=PREGLED)
 
     response = client.patch("/services/999", json={"is_active": False})
     assert response.status_code == 404

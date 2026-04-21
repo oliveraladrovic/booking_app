@@ -19,3 +19,13 @@ class UserNotFoundError(DomainException):
 class ServiceNotFoundError(DomainException):
     message: str = "Service not found"
     status_code: int = status.HTTP_404_NOT_FOUND
+
+
+class TimeSlotOccupiedError(DomainException):
+    message: str = "Time slot already occupied"
+    status_code: int = status.HTTP_409_CONFLICT
+
+
+class InvalidStartTimeError(DomainException):
+    message: str = "Start time can not be in past"
+    status_code: int = status.HTTP_400_BAD_REQUEST
