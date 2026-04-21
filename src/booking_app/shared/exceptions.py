@@ -29,3 +29,13 @@ class TimeSlotOccupiedError(DomainException):
 class InvalidStartTimeError(DomainException):
     message: str = "Start time can not be in past"
     status_code: int = status.HTTP_400_BAD_REQUEST
+
+
+class BookingNotFoundError(DomainException):
+    message: str = "Booking not found"
+    status_code: int = status.HTTP_404_NOT_FOUND
+
+
+class ConfirmingInvalidBookingError(DomainException):
+    message: str = "Only pending booking can be confirmed"
+    status_code: int = status.HTTP_409_CONFLICT

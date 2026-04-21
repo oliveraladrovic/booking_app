@@ -9,6 +9,8 @@ from ..shared.exceptions import (
     ServiceNotFoundError,
     TimeSlotOccupiedError,
     InvalidStartTimeError,
+    BookingNotFoundError,
+    ConfirmingInvalidBookingError,
 )
 from ..shared.enums import BookingStatus
 
@@ -61,3 +63,24 @@ def create_booking(session: Session, booking: BookingCreate) -> Booking:
     session.commit()
     session.refresh(new_booking)
     return new_booking
+
+
+def confirm_booking(session: Session, booking_id: int) -> Booking:
+    booking = _get_booking_or_404(session, booking_id)
+    if booking.status != BookingStatus.pending:
+        raise ConfirmingInvalidBookingError()
+
+    if booking.start_time < datetime.now(timezone.utc):
+        raise InvalidStartTimeError()
+
+    booking.status = BookingStatus.confirmed
+    session.commit()
+    return booking
+
+
+def _get_booking_or_404(session: Session, booking_id: int) -> Booking:
+    booking = session.scalar(select(Booking).where(Booking.id == booking_id))
+    if booking is None:
+        raise BookingNotFoundError()
+
+    return booking

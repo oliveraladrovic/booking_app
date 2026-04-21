@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 from datetime import datetime, timezone, timedelta
+import time
 
 from booking_app.shared.enums import BookingStatus
 
@@ -111,3 +112,81 @@ def test_post_booking_overlaping(client: TestClient):
     response = client.post("/bookings/", json=booking2)
     assert response.status_code == 409
     assert response.json()["detail"] == "Time slot already occupied"
+
+
+def test_confirm_booking_success(client: TestClient):
+    user = client.post("/users/", json=USER)
+    user_id = user.json()["id"]
+    service = client.post("/services/", json=SERVICE)
+    service_id = service.json()["id"]
+
+    start = datetime.now(timezone.utc) + timedelta(minutes=1)
+    booking_data = {
+        "user_id": user_id,
+        "service_id": service_id,
+        "start_time": start.isoformat(),
+    }
+    booking = client.post("/bookings/", json=booking_data)
+    booking_id = booking.json()["id"]
+
+    time.sleep(2)
+    response = client.post(f"/bookings/{booking_id}/confirm")
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["status"] == BookingStatus.confirmed.value
+    assert (
+        datetime.fromisoformat(data["created_at"]) + timedelta(seconds=1)
+        < datetime.fromisoformat(data["updated_at"])
+        < datetime.fromisoformat(data["created_at"]) + timedelta(seconds=3)
+    )
+
+
+def test_confirm_booking_not_found(client: TestClient):
+    response = client.post("/bookings/999/confirm")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Booking not found"
+
+
+def test_confirm_booking_invalid_status(client: TestClient):
+    user = client.post("/users/", json=USER)
+    user_id = user.json()["id"]
+    service = client.post("/services/", json=SERVICE)
+    service_id = service.json()["id"]
+
+    start = datetime.now(timezone.utc) + timedelta(minutes=1)
+    booking_data = {
+        "user_id": user_id,
+        "service_id": service_id,
+        "start_time": start.isoformat(),
+    }
+    booking = client.post("/bookings/", json=booking_data)
+    booking_id = booking.json()["id"]
+
+    confirmed = client.post(f"/bookings/{booking_id}/confirm")
+    assert confirmed.status_code == 200
+
+    response = client.post(f"/bookings/{booking_id}/confirm")
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Only pending booking can be confirmed"
+
+
+def test_confirm_booking_pending_exceeded(client: TestClient):
+    user = client.post("/users/", json=USER)
+    user_id = user.json()["id"]
+    service = client.post("/services/", json=SERVICE)
+    service_id = service.json()["id"]
+
+    start = datetime.now(timezone.utc) + timedelta(seconds=1)
+    booking_data = {
+        "user_id": user_id,
+        "service_id": service_id,
+        "start_time": start.isoformat(),
+    }
+    booking = client.post("/bookings/", json=booking_data)
+    booking_id = booking.json()["id"]
+
+    time.sleep(2)
+    response = client.post(f"/bookings/{booking_id}/confirm")
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Start time can not be in past"
