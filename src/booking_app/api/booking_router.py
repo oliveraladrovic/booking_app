@@ -33,9 +33,10 @@ def complete_booking(booking_id: int, session: Session = Depends(get_session)):
 def get_bookings(
     start_date: date | None = None,
     end_date: date | None = None,
+    active: bool | None = None,
     session: Session = Depends(get_session),
 ):
-    return booking_service.list_bookings(session, start_date, end_date)
+    return booking_service.list_bookings(session, start_date, end_date, active)
 
 
 @router.get("/{booking_id}", response_model=BookingRead)

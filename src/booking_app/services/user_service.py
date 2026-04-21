@@ -31,19 +31,25 @@ def list_users(
     start_date: date | None = None,
     end_date: date | None = None,
 ) -> list[User]:
-    users = session.query(User)
-    if service_id is not None:
-        users = users.join(User.bookings).filter(Booking.service_id == service_id)
-    if start_date is not None:
-        users = users.filter(Booking.start_time >= start_date)
-    if end_date is not None:
-        users = users.filter(Booking.start_time <= end_date)
-    if any(value is not None for value in (service_id, start_date, end_date)):
-        users = users.filter(
+    stmt = select(User)
+    if any([service_id, start_date, end_date]):
+        stmt = stmt.join(User.bookings)
+
+        if service_id is not None:
+            stmt = stmt.where(Booking.service_id == service_id)
+
+        if start_date is not None:
+            stmt = stmt.where(Booking.start_time >= start_date)
+
+        if end_date is not None:
+            stmt = stmt.where(Booking.start_time <= end_date)
+
+        stmt = stmt.where(
             Booking.status != BookingStatus.cancelled,
             Booking.status != BookingStatus.completed,
         )
-    users = users.all()
+
+    users = session.scalars(stmt).all()
     return users
 
 

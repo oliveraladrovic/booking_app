@@ -63,6 +63,7 @@ def confirm_booking(session: Session, booking_id: int) -> Booking:
 
     booking.status = BookingStatus.confirmed
     session.commit()
+    session.refresh(booking)
     return booking
 
 
@@ -76,6 +77,7 @@ def cancel_booking(session: Session, booking_id: int) -> Booking:
 
     booking.status = BookingStatus.cancelled
     session.commit()
+    session.refresh(booking)
     return booking
 
 
@@ -86,23 +88,37 @@ def complete_booking(session: Session, booking_id: int) -> Booking:
 
     booking.status = BookingStatus.completed
     session.commit()
+    session.refresh(booking)
     return booking
 
 
 def list_bookings(
-    session: Session, start_date: date | None = None, end_date: date | None = None
+    session: Session,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    active: bool | None = None,
 ) -> list[Booking]:
-    bookings = session.query(Booking)
+    stmt = select(Booking)
+
     if start_date is not None:
-        bookings = bookings.filter(Booking.start_time >= start_date)
+        stmt = stmt.where(Booking.start_time >= start_date)
+
     if end_date is not None:
-        bookings = bookings.filter(Booking.start_time <= end_date)
-    if any(value is not None for value in (start_date, end_date)):
-        bookings = bookings.filter(
-            Booking.status != BookingStatus.cancelled,
-            Booking.status != BookingStatus.completed,
-        )
-    bookings = bookings.all()
+        stmt = stmt.where(Booking.start_time <= end_date)
+
+    if active is not None:
+        if active:
+            stmt = stmt.where(
+                Booking.status != BookingStatus.cancelled,
+                Booking.status != BookingStatus.completed,
+            )
+        else:
+            stmt = stmt.where(
+                Booking.status != BookingStatus.pending,
+                Booking.status != BookingStatus.confirmed,
+            )
+
+    bookings = session.scalars(stmt).all()
     return bookings
 
 
@@ -122,15 +138,19 @@ def update_booking(
         return booking
 
     for field, value in update_data.items():
-        if field == "start_time":
+        if "start_time" in update_data:
             booking_start, booking_end = _calculate_time(
                 value, booking.service.duration_minutes
             )
             _check_for_overlap(booking_start, booking_end, session, booking_id)
+            booking.start_time = booking_start
+            booking.end_time = booking_end
+            continue
 
         setattr(booking, field, value)
 
     session.commit()
+    session.refresh(booking)
     return booking
 
 

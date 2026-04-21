@@ -26,19 +26,26 @@ def list_services(
     start_date: date | None = None,
     end_date: date | None = None,
 ) -> list[Service]:
-    services = session.query(Service)
-    if user_id is not None:
-        services = services.join(Service.bookings).filter(Booking.user_id == user_id)
-    if start_date is not None:
-        services = services.filter(Booking.start_time >= start_date)
-    if end_date is not None:
-        services = services.filter(Booking.start_time <= end_date)
-    if any(value is not None for value in (user_id, start_date, end_date)):
-        services = services.filter(
+    stmt = select(Service)
+
+    if any([user_id, start_date, end_date]):
+        stmt = stmt.join(Service.bookings)
+
+        if user_id is not None:
+            stmt = stmt.where(Booking.user_id == user_id)
+
+        if start_date is not None:
+            stmt = stmt.where(Booking.start_time >= start_date)
+
+        if end_date is not None:
+            stmt = stmt.where(Booking.start_time <= end_date)
+
+        stmt = stmt.where(
             Booking.status != BookingStatus.cancelled,
             Booking.status != BookingStatus.completed,
         )
-    services = services.all()
+
+    services = session.scalars(stmt).all()
     return services
 
 
