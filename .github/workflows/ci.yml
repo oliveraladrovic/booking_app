@@ -25,11 +25,9 @@ jobs:
 
     env:
       APP_NAME: Booking App
-      APP_ENV: development
-      DEBUG: True
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/booking_app_test
       TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/booking_app_test
-      SECRET_KEY: very_strong_secret_key
+      PORT: 8000
 
     steps:
       - name: Checkout code
