@@ -4,8 +4,8 @@ from typing import Generator
 
 from ..config import settings
 
-engine = create_engine(settings.database_url, echo=settings.debug, future=True)
-SessionFactory = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+engine = create_engine(settings.database_url, future=True)
+SessionFactory = sessionmaker(bind=engine, autoflush=False)
 
 
 def get_session() -> Generator[Session, None, None]:
