@@ -3,8 +3,11 @@
 A backend API for managing users, services, and bookings with real-world business rules, built using FastAPI and SQLAlchemy.
 
 **Live API Docs:**
-https://booking-app-3plw.onrender.com/docs
-> Note: The app is hosted on a free tier and may take a few seconds to wake up.
+This project is currently not deployed.
+
+The application was previously deployed on Render free tier, but only the main capstone project is currently kept online due to free-tier resource limits.
+
+The project can be run locally by following the setup instructions below.
 ---
 
 ## Overview
